@@ -14,7 +14,7 @@ func (app *application) logError(r *http.Request, err error) {
 	})
 }
 
-func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, status int, message string) {
+func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, status int, message any) {
 	env := envelope{"error": message}
 
 	err := app.writeJSON(w, status, env, nil)
@@ -46,7 +46,7 @@ func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
 }
 func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.Request, err map[string]string) {
-	app.errorResponse(w, r, http.StatusUnprocessableEntity, err["title"])
+	app.errorResponse(w, r, http.StatusUnprocessableEntity, err)
 }
 
 func (app *application) editConflictResponse(w http.ResponseWriter, r *http.Request) {

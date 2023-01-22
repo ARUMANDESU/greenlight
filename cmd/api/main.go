@@ -1,11 +1,16 @@
 package main
 
+//192
 import (
 	"context"
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+	"greenlight.arumandesu.com/internal/data"
 	"log"
 	"net/http"
 	"os"
@@ -28,6 +33,7 @@ type config struct {
 type application struct {
 	config config
 	logger *log.Logger
+	models data.Models
 }
 
 func main() {
@@ -50,9 +56,25 @@ func main() {
 	defer db.Close()
 
 	logger.Printf("database connection pool established")
+
+	migrationDriver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		logger.Fatal(err, nil)
+	}
+	migrator, err := migrate.NewWithDatabaseInstance("file://./migrations", "postgres", migrationDriver)
+	if err != nil {
+		logger.Fatal(err, nil)
+	}
+	err = migrator.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		logger.Fatal(err, nil)
+	}
+	logger.Printf("database migrations applied")
+
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.port),
